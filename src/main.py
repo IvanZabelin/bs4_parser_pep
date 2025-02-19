@@ -9,7 +9,7 @@ from tqdm import tqdm
 from constants import BASE_DIR, MAIN_DOC_URL
 from configs import configure_argument_parser, configure_logging
 from outputs import control_output
-from utils import get_response, find_tag
+from utils import get_response, find_tag, parse_pep_list, process_pep_data, save_to_csv
 
 
 def whats_new(session):
@@ -88,10 +88,24 @@ def download(session):
     logging.info(f'Архив был загружен и сохранён: {archive_path}')
 
 
+def pep(session):
+    """Парсит PEP, считает статусы и сохраняет в CSV."""
+    pep_links = parse_pep_list(session)
+    if not pep_links:
+        logging.error("Список PEP пуст, парсинг остановлен.")
+        return
+
+    status_counts = process_pep_data(session, pep_links)
+    save_to_csv(status_counts, 'pep_summary.csv')
+
+    return [("Статус", "Количество")] + list(status_counts.items())
+
+
 MODE_TO_FUNCTION = {
     'whats-new': whats_new,
     'latest-versions': latest_versions,
     'download': download,
+    'pep': pep,
 }
 
 
