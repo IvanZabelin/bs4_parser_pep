@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from requests import RequestException
 from tqdm import tqdm
 
-from constants import  PEP_DOC_URL, EXPECTED_STATUS, RESULTS_DIR
+from constants import PEP_DOC_URL, EXPECTED_STATUS, RESULTS_DIR
 from exceptions import ParserFindTagException
 
 
