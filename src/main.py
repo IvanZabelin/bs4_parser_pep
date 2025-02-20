@@ -6,7 +6,7 @@ from requests_cache import CachedSession
 from tqdm import tqdm
 
 from configs import configure_argument_parser, configure_logging
-from constants import DOWNLOADS_DIR, MAIN_DOC_URL
+from constants import BASE_DIR, DOWNLOADS, MAIN_DOC_URL
 from outputs import control_output
 from exceptions import ParsingError
 from utils import (
@@ -105,9 +105,9 @@ def download(session):
 
     response = session.get(archive_url)
     filename = archive_url.split('/')[-1]
-    archive_path = DOWNLOADS_DIR / filename
-
-    DOWNLOADS_DIR.mkdir(exist_ok=True)
+    downloads_dir = BASE_DIR / DOWNLOADS
+    downloads_dir.mkdir(exist_ok=True)
+    archive_path = downloads_dir / filename
 
     with open(archive_path, 'wb') as file:
         file.write(response.content)

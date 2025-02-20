@@ -10,9 +10,12 @@ DT_FORMAT = '%d.%m.%Y %H:%M:%S'
 DATETIME_FORMAT = '%Y-%m-%d_%H-%M-%S'
 
 BASE_LOG_DIR = BASE_DIR / 'logs'
-DOWNLOADS_DIR = BASE_DIR / 'downloads'
 RESULTS_DIR = BASE_DIR / 'results'
 LOG_FILE_PATH = BASE_LOG_DIR / 'parser.log'
+
+RESULTS = 'results'
+DOWNLOADS = 'downloads'
+
 
 LOG_FORMAT = '"%(asctime)s - [%(levelname)s] - %(message)s"'
 
