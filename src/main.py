@@ -55,7 +55,7 @@ def whats_new(session):
             dl = find_tag(soup, 'dl')
             dl_text = dl.text.replace('\n', ' ')
             results.append((version_link, h1.text, dl_text))
-        except RequestError as error:
+        except RequestError:
             skipped_links.append(version_link)
 
     if skipped_links:
