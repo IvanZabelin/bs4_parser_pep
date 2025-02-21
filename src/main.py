@@ -1,5 +1,6 @@
 import logging
 import re
+import requests
 from urllib.parse import urljoin
 
 from requests_cache import CachedSession
@@ -8,7 +9,7 @@ from tqdm import tqdm
 from configs import configure_argument_parser, configure_logging
 from constants import BASE_DIR, DOWNLOADS, MAIN_DOC_URL
 from outputs import control_output
-from exceptions import ParsingError
+from exceptions import ParsingError, RequestError
 from utils import (
     find_tag,
     parse_pep_list,
@@ -21,10 +22,15 @@ from utils import (
 def whats_new(session):
     """Парсит страницу с нововведениями в Python."""
     whats_new_url = urljoin(MAIN_DOC_URL, 'whatsnew/')
-    soup = get_soup(session, whats_new_url)
-    if soup is None:
-        logging.error("Не удалось загрузить страницу %s", whats_new_url)
-        return
+    try:
+        soup = get_soup(session, whats_new_url)
+    except RequestError as error:
+        logging.error(
+            "Ошибка при загрузке страницы нововведений %s: %s",
+            whats_new_url,
+            error
+        )
+        return []
 
     main_div = find_tag(
         soup, 'section', attrs={'id': 'what-s-new-in-python'}
@@ -37,30 +43,37 @@ def whats_new(session):
     )
 
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, автор')]
+    skipped_links = []
+
     for section in tqdm(sections_by_python):
         version_a_tag = section.find('a')
         href = version_a_tag['href']
         version_link = urljoin(whats_new_url, href)
-        soup = get_soup(session, version_link)
-        if soup is None:
-            logging.warning(
-                "Пропущена итерация: не удалось получить %s", version_link
-            )
-            continue
+        try:
+            soup = get_soup(session, version_link)
+            h1 = find_tag(soup, 'h1')
+            dl = find_tag(soup, 'dl')
+            dl_text = dl.text.replace('\n', ' ')
+            results.append((version_link, h1.text, dl_text))
+        except RequestError as error:
+            skipped_links.append(version_link)
 
-        h1 = find_tag(soup, 'h1')
-        dl = find_tag(soup, 'dl')
-        dl_text = dl.text.replace('\n', ' ')
-        results.append((version_link, h1.text, dl_text))
+    if skipped_links:
+        logging.warning(
+            "Пропущены итерации: не удалось получить %s",
+            ', '.join(skipped_links)
+        )
 
     return results
 
 
 def latest_versions(session):
     """Парсит список последних версий Python."""
-    soup = get_soup(session, MAIN_DOC_URL)
-    if soup is None:
-        return
+    try:
+        soup = get_soup(session, MAIN_DOC_URL)
+    except requests.RequestException as error:
+        logging.error("Ошибка при загрузке главной страницы: %s", error)
+        return []
 
     sidebar = find_tag(soup, 'div', attrs={'class': 'sphinxsidebarwrapper'})
     ul_tags = sidebar.find_all('ul')
@@ -92,8 +105,11 @@ def latest_versions(session):
 def download(session):
     """Скачивает PDF-документацию по Python."""
     downloads_url = urljoin(MAIN_DOC_URL, 'download.html')
-    soup = get_soup(session, downloads_url)
-    if soup is None:
+    try:
+        soup = get_soup(session, downloads_url)
+    except RequestError as error:
+        logging.error(
+            "Ошибка при загрузке страницы %s: %s", downloads_url, error)
         return
 
     table_tag = find_tag(soup, 'table')
@@ -103,7 +119,13 @@ def download(session):
     pdf_a4_link = pdf_a4_tag['href']
     archive_url = urljoin(downloads_url, pdf_a4_link)
 
-    response = session.get(archive_url)
+    try:
+        response = session.get(archive_url)
+        response.raise_for_status()
+    except requests.RequestException as error:
+        logging.error("Ошибка при скачивании архива: %s", error)
+        return
+
     filename = archive_url.split('/')[-1]
     downloads_dir = BASE_DIR / DOWNLOADS
     downloads_dir.mkdir(exist_ok=True)
@@ -118,11 +140,9 @@ def download(session):
 def pep(session):
     """Парсит PEP-документы, считает их статусы и сохраняет в CSV."""
     pep_links = parse_pep_list(session)
-    if not pep_links:
-        logging.error("Список PEP пуст, парсинг остановлен.")
-        return
 
     status_counts = process_pep_data(session, pep_links)
+
     save_to_csv(status_counts, 'pep_summary.csv')
 
     return [("Статус", "Количество")] + list(status_counts.items())

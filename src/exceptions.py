@@ -4,3 +4,7 @@ class ParserFindTagException(Exception):
 
 class ParsingError(Exception):
     """Ошибка парсинга данных."""
+
+
+class RequestError(Exception):
+    """Ошибка при выполнении HTTP-запроса."""

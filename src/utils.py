@@ -8,7 +8,7 @@ from requests import RequestException
 from tqdm import tqdm
 
 from constants import PEP_DOC_URL, EXPECTED_STATUS, RESULTS_DIR
-from exceptions import ParserFindTagException
+from exceptions import ParserFindTagException, RequestError
 
 
 logging.basicConfig(
@@ -25,13 +25,13 @@ def get_response(session, url, encoding='utf-8'):
         response.encoding = encoding
         return response
     except RequestException as error:
-        raise RuntimeError(f'Ошибка при загрузке страницы {url}: {error}')
+        raise RequestError(f'Ошибка при загрузке страницы {url}: {error}')
 
 
-def get_soup(session, url):
+def get_soup(session, url, parser='lxml'):
     """Получает HTML-страницу и возвращает объект BeautifulSoup."""
     response = get_response(session, url)
-    return BeautifulSoup(response.text, 'lxml')
+    return BeautifulSoup(response.text, parser)
 
 
 def find_tag(soup, tag, attrs=None):

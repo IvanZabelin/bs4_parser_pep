@@ -4,15 +4,21 @@ import datetime as dt
 
 from prettytable import PrettyTable
 
-from constants import BASE_DIR, DATETIME_FORMAT, RESULTS
+from constants import (
+    BASE_DIR,
+    DATETIME_FORMAT,
+    OUTPUT_PRETTY,
+    OUTPUT_FILE,
+    RESULTS,
+)
 
 
 def control_output(results, cli_args):
     """Определяет способ вывода результатов."""
     output = cli_args.output
-    if output == 'pretty':
+    if output == OUTPUT_PRETTY:
         pretty_output(results)
-    elif output == 'file':
+    elif output == OUTPUT_FILE:
         file_output(results, cli_args)
     else:
         default_output(results)
